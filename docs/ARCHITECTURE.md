@@ -135,7 +135,7 @@ Next build order:
 - Disable local unauthenticated filesystem operations in production until authentication and ownership checks exist.
 
 
-## First visual styling implementation
+## Framework-aware visual source editing
 
 The static preview now has a constrained visual style write path:
 - The trusted preview bridge accepts a versioned `apply-style` message only from its parent window and only for the currently selected element ID.

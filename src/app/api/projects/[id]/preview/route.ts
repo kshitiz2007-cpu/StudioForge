@@ -2,6 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import sanitizeHtml from "sanitize-html";
 import postcss from "postcss";
+import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,13 +45,15 @@ function collectLocalStylesheets(html: string, htmlPath: string) {
   return [...new Set(hrefs.map((href) => path.posix.normalize(path.posix.join(folder === "." ? "" : folder, href))).filter((p) => p && p !== "." && !p.startsWith("../")))].slice(0, MAX_CSS_FILES);
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (!ID_PATTERN.test(id)) return Response.json({ error: "Project not found." }, { status: 404 });
 
   const projectDir = path.join(process.cwd(), ".studioforge", "projects", id);
   try {
     const manifest = JSON.parse(await readFile(path.join(projectDir, "manifest.json"), "utf8")) as { id: string; entrypoint: string | null };
+    const requestedSession = new URL(request.url).searchParams.get("session");
+    const sessionId = requestedSession && /^[0-9a-f-]{36}$/i.test(requestedSession) ? requestedSession : randomUUID();
     if (manifest.id !== id || !manifest.entrypoint) return Response.json({ error: "No static HTML entrypoint is available." }, { status: 404 });
 
     const sourceRoot = path.join(projectDir, "files");
@@ -92,13 +95,13 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       },
     });
 
-    const document = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src 'none'; media-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0;min-height:100%;}img{max-width:100%;height:auto}${styles.join("\\n")}</style></head><body>${safeMarkup}</body></html>`;
+    const document = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'self'; font-src 'none'; media-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0;min-height:100%;}img{max-width:100%;height:auto}${styles.join("\\n")}</style></head><body>${safeMarkup}</body><script src="/preview-bridge.js?session=${encodeURIComponent(sessionId)}" defer></script></html>`;
     return new Response(document, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
-        "Content-Security-Policy": "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src 'none'; media-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'self'",
+        "Content-Security-Policy": "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'self'; font-src 'none'; media-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'self'",
       },
     });
   } catch {

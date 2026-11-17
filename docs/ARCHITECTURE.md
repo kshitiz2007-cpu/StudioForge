@@ -133,3 +133,15 @@ Next build order:
 - Use a separate preview origin, restrictive sandboxing and a narrow validated bridge.
 - Log security-relevant events without logging secrets or source contents unnecessarily.
 - Disable local unauthenticated filesystem operations in production until authentication and ownership checks exist.
+
+
+## First visual styling implementation
+
+The static preview now has a constrained visual style write path:
+- The trusted preview bridge accepts a versioned `apply-style` message only from its parent window and only for the currently selected element ID.
+- The canvas can edit text color, background color, font size, width, padding, border radius and 3-/4-stop linear gradients.
+- A server endpoint validates selectors, allowlisted CSS properties and CSS declaration syntax before writing to `studioforge-overrides.css`.
+- The endpoint links that stylesheet from the project's HTML entrypoint, so the override travels with the source project and ZIP export.
+- The preview route reads local stylesheets and applies the generated override stylesheet in the sanitized static preview.
+
+This first source-write adapter targets static HTML/CSS projects only. Framework-specific projects still require their own source adapters and an isolated runtime. The UI must not imply that a style operation is persisted if the endpoint rejects it.

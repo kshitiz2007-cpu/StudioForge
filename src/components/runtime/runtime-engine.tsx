@@ -8,6 +8,7 @@ type LogLine = { id: number; stream: "stdout" | "stderr" | "system"; text: strin
 type EngineState = "idle" | "mounting" | "installing" | "starting" | "running" | "stopping" | "error";
 
 let sharedContainer: import("@webcontainer/api").WebContainer | null = null;
+let activeProjectId = "";
 let bootPromise: Promise<import("@webcontainer/api").WebContainer> | null = null;
 let nextLogId = 0;
 
@@ -73,11 +74,16 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
       if (declaredManager && !["npm", "pnpm", "yarn"].includes(declaredManager)) throw new Error(`Unsupported package manager: ${declaredManager}. Use npm, pnpm, or yarn.`);
       setPackageManager(manager); setScript(launchScript);
       log("system", `Mounting ${files.length} project files (${Math.round(payload.totalBytes / 1024)} KB)…`);
+      if (sharedContainer && activeProjectId !== projectId) {
+        await sharedContainer.teardown(); sharedContainer = null; bootPromise = null;
+      }
       if (!sharedContainer) {
         if (!bootPromise) bootPromise = import("@webcontainer/api").then(({ WebContainer }) => WebContainer.boot({ coep: "require-corp", forwardPreviewErrors: true }));
-        sharedContainer = await bootPromise;
+        try { sharedContainer = await bootPromise; }
+        catch (bootError) { bootPromise = null; throw bootError; }
         bootPromise = null;
       }
+      activeProjectId = projectId;
       const container = sharedContainer;
       const tree: Record<string, unknown> = {};
       for (const file of files) appendTree(tree, file);
@@ -109,6 +115,8 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
         }
       }, 120000);
     } catch (reason) {
+      if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
+      if (sharedContainer) { await sharedContainer.teardown().catch(() => undefined); sharedContainer = null; activeProjectId = ""; bootPromise = null; }
       setError(reason instanceof Error ? reason.message : "Runtime failed.");
       log("stderr", reason instanceof Error ? reason.message : "Runtime failed.");
       setState("error");
@@ -121,7 +129,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
     try {
       if (processRef.current) { await processRef.current.kill(); processRef.current = null; }
       if (sharedContainer) { await sharedContainer.teardown(); sharedContainer = null; bootPromise = null; }
-      readyRef.current = false; setPreviewUrl(""); setState("idle"); log("system", "Runtime stopped and browser workspace torn down.");
+      readyRef.current = false; activeProjectId = ""; setPreviewUrl(""); setState("idle"); log("system", "Runtime stopped and browser workspace torn down.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not stop runtime.");
       setState("error");

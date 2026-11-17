@@ -52,6 +52,8 @@ export default function Home() {
   const [gradientCount, setGradientCount] = useState<3 | 4>(3);
   const [visualSaving, setVisualSaving] = useState(false);
   const [visualStatus, setVisualStatus] = useState("");
+  const [runtimeInfo, setRuntimeInfo] = useState<{ status: string; provider: string | null; canStart: boolean; message: string } | null>(null);
+  const [runtimeStarting, setRuntimeStarting] = useState(false);
   const selected = useMemo(() => files.find((file) => file.name === activeFile), [activeFile]);
 
   useEffect(() => {
@@ -126,6 +128,31 @@ export default function Home() {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [importedProject, previewSession]);
+
+  useEffect(() => {
+    if (!importedProject) { setRuntimeInfo(null); return; }
+    let cancelled = false;
+    fetch(`/api/projects/${importedProject.id}/runtime`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => { if (!cancelled) setRuntimeInfo(data); })
+      .catch(() => { if (!cancelled) setRuntimeInfo({ status: "error", provider: null, canStart: false, message: "Could not retrieve runtime status." }); });
+    return () => { cancelled = true; };
+  }, [importedProject?.id]);
+
+  async function startProjectRuntime() {
+    if (!importedProject || !runtimeInfo?.canStart || runtimeStarting) return;
+    setRuntimeStarting(true);
+    try {
+      const response = await fetch(`/api/projects/${importedProject.id}/runtime`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Runtime could not start.");
+      setRuntimeInfo({ status: data.status, provider: data.provider, canStart: false, message: data.message });
+    } catch (error) {
+      setRuntimeInfo((current) => current ? { ...current, message: error instanceof Error ? error.message : "Runtime could not start." } : null);
+    } finally {
+      setRuntimeStarting(false);
+    }
+  }
 
   useEffect(() => {
     if (!importedProject) return;
@@ -243,7 +270,7 @@ export default function Home() {
             <p className="mt-3 text-[10px] leading-relaxed text-amber-200">Selection is connected. Visual property editing and source mapping are the next milestone.</p>
             <button onClick={()=>setSelectedElement(null)} className="mt-3 w-full rounded-md border border-forge-line px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Clear selection</button>
           </div> : <div className="flex flex-1 flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-12 w-12 place-items-center rounded-xl border border-forge-line bg-forge-panel text-forge-muted"><MousePointerIcon /></div><div className="text-sm font-medium text-slate-200">Select an element</div><p className="mt-2 text-xs leading-relaxed text-forge-muted">Hover and click an element in the preview. {hoveredElement ? "Hovering: "+hoveredElement.tagName+" · "+hoveredElement.selector : ""}</p></div>}
-          <div className="border-t border-forge-line p-3"><div className="mb-2 flex items-center gap-2 text-xs font-medium"><Gauge size={14} className="text-forge-accent" /> Runtime status</div><div className="flex items-center justify-between rounded-md bg-forge-panel px-3 py-2 text-xs"><span className="text-forge-muted">Execution provider</span><span className="text-amber-300">Not configured</span></div><p className="mt-2 text-[10px] leading-relaxed text-forge-muted">Project execution remains disabled until a secure runtime adapter is connected.</p></div>
+          <div className="border-t border-forge-line p-3"><div className="mb-2 flex items-center gap-2 text-xs font-medium"><Gauge size={14} className="text-forge-accent" /> Runtime Lab</div><div className="flex items-center justify-between rounded-md bg-forge-panel px-3 py-2 text-xs"><span className="text-forge-muted">Execution provider</span><span className={runtimeInfo?.status === "available" ? "text-forge-accent" : "text-amber-300"}>{runtimeInfo?.provider || "Not configured"}</span></div><p className="mt-2 text-[10px] leading-relaxed text-forge-muted">{runtimeInfo?.message || (importedProject ? "Checking runtime availability…" : "Import a project to inspect runtime compatibility.")}</p><button disabled={!importedProject || !runtimeInfo?.canStart || runtimeStarting} onClick={startProjectRuntime} className="mt-2 w-full rounded-md border border-forge-line px-3 py-2 text-[11px] font-medium text-slate-300 disabled:cursor-not-allowed disabled:opacity-40">{runtimeStarting ? "Starting…" : "Start project runtime"}</button><p className="mt-2 text-[10px] leading-relaxed text-forge-muted">Imported project scripts are never executed by the StudioForge app server.</p></div>
         </aside>}
       </div>
       {importedProject?.warnings?.length ? <div className="fixed bottom-16 left-1/2 z-40 max-w-lg -translate-x-1/2 rounded-lg border border-amber-500/30 bg-[#211b11] px-4 py-3 text-xs text-amber-100">{importedProject.warnings.join(" ")}</div> : null}

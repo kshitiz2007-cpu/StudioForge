@@ -57,6 +57,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
     const onSourceSaved = async (event: Event) => {
       const detail = (event as CustomEvent<{ projectId?: string; path?: string; content?: string }>).detail;
       if (!detail || detail.projectId !== projectId || !sharedContainer || activeProjectId !== projectId) return;
+      const container = sharedContainer;
       if (typeof detail.path !== "string" || typeof detail.content !== "string") return;
       const normalized = detail.path.replace(/\\/g, "/");
       if (!normalized || normalized.startsWith("/") || normalized.split("/").some((part) => !part || part === "." || part === "..")) {
@@ -64,11 +65,11 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
         return;
       }
       try {
-        await sharedContainer.fs.writeFile(normalized, detail.content);
+        await container.fs.writeFile(normalized, detail.content);
         log("system", `Updated ${normalized} in the running runtime. The dev server can apply hot reload automatically.`);
         if (normalized === "package.json") {
           log("system", "package.json changed; reinstalling dependencies…");
-          const install = await sharedContainer.spawn(packageManager, ["install"]);
+          const install = await container.spawn(packageManager, ["install"]);
           void install.output.pipeTo(new WritableStream({ write(data) { log("stdout", data); } }));
           const code = await install.exit;
           if (code !== 0) log("stderr", `Dependency refresh exited with code ${code}.`);

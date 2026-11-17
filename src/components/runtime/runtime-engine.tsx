@@ -58,7 +58,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
       const detail = (event as CustomEvent<{ projectId?: string; path?: string; content?: string }>).detail;
       if (!detail || detail.projectId !== projectId || !sharedContainer || activeProjectId !== projectId) return;
       if (typeof detail.path !== "string" || typeof detail.content !== "string") return;
-      const normalized = detail.path.replace(/\\\\/g, "/");
+      const normalized = detail.path.replace(/\\/g, "/");
       if (!normalized || normalized.startsWith("/") || normalized.split("/").some((part) => !part || part === "." || part === "..")) {
         log("stderr", "Rejected unsafe runtime file update path.");
         return;

@@ -116,7 +116,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
       }, 120000);
     } catch (reason) {
       if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
-      if (sharedContainer) { await sharedContainer.teardown().catch(() => undefined); sharedContainer = null; activeProjectId = ""; bootPromise = null; }
+      if (sharedContainer) { try { sharedContainer.teardown(); } catch { /* Runtime already disposed. */ } sharedContainer = null; activeProjectId = ""; bootPromise = null; }
       setError(reason instanceof Error ? reason.message : "Runtime failed.");
       log("stderr", reason instanceof Error ? reason.message : "Runtime failed.");
       setState("error");

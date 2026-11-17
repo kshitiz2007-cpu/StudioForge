@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { getRuntimeProvider } from "@/lib/runtime/provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +13,6 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const manifestPath = path.join(process.cwd(), ".studioforge", "projects", id, "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as { id: string; kind: string; name: string };
     if (manifest.id !== id) return Response.json({ error: "Project not found." }, { status: 404 });
-    const provider = getRuntimeProvider();
     return Response.json({
       projectId: id,
       projectKind: manifest.kind,

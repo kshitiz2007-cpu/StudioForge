@@ -23,7 +23,7 @@
     "@babel/parser": "^7.28.5",
     "@babel/traverse": "^7.28.5",
     "@babel/generator": "^7.28.5",
-    "@webcontainer/api": "^1.6.1"
+    "@webcontainer/api": "^1.6.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

@@ -77,10 +77,6 @@ export default function Home() {
   async function applyVisualStyle(property: string, value: string) {
     if (!importedProject || !selectedElement || !previewRef.current?.contentWindow) return;
     const operationId = crypto.randomUUID();
-    previewRef.current.contentWindow.postMessage({
-      protocol: "studioforge.preview.v1", type: "apply-style", sessionId: previewSession,
-      operationId, elementId: selectedElement.elementId, property, value,
-    }, "*");
     setVisualSaving(true);
     setVisualStatus("Saving visual change…");
     try {
@@ -90,6 +86,10 @@ export default function Home() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not save visual change.");
+      previewRef.current?.contentWindow?.postMessage({
+        protocol: "studioforge.preview.v1", type: "apply-style", sessionId: previewSession,
+        operationId, elementId: selectedElement.elementId, property, value,
+      }, "*");
       setVisualStatus("Saved in " + data.sourceFile + " (" + data.matchedSelector + ")");
     } catch (error) {
       setVisualStatus(error instanceof Error ? error.message : "Visual save failed.");

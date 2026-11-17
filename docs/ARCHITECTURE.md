@@ -154,3 +154,8 @@ Visual style edits use parser-backed and stylesheet source adapters:
 The repository defines a provider contract with isolation type, capabilities, resource limits, workspace lifecycle, dependency installation, dev-server startup, log streaming and cleanup. A per-project runtime status API reports whether a provider is configured. The UI exposes a Start project runtime control, but it remains disabled while no reviewed provider implementation is registered. The start endpoint returns an explicit unavailable response and never executes package scripts in the StudioForge process.
 
 The default resource policy is a contract baseline, not an enforced limit until a provider implements it. Provider registration must remain explicit and must not be enabled by an environment variable alone.
+
+
+### Live Runtime Engine status
+
+The first executable adapter is StackBlitz WebContainers in the browser tab. A dedicated runtime-files API assembles the imported workspace while excluding `.env*`, private keys, `node_modules`, `.git`, and generated output. It rejects mounts above 40 MB total or 5 MB per file. The client mounts that tree, detects npm/pnpm/yarn, runs the package manager install, selects the first available `dev`, `start`, or `preview` script, streams process output, waits for `server-ready`, and embeds the returned preview URL. Stop kills the process and tears down the WebContainer instance. Supported projects require a root `package.json`; projects with no supported script fail closed. This is a browser sandbox, not a remote container/microVM service. WebContainer's single-instance-per-page constraint means the adapter runs one active runtime at a time.

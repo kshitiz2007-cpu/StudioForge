@@ -62,3 +62,10 @@ The preview bridge is StudioForge-owned code injected with a per-response CSP no
 ## Visual style writes
 
 The visual style API is available only for the local development workspace while project authentication and ownership authorization are absent. It validates the project ID, entrypoint and filesystem boundaries, accepts only an allowlist of CSS properties, parses each submitted declaration with PostCSS, rejects resource-loading and script-like CSS values, and limits selector/value lengths. It writes a generated `studioforge-overrides.css` file into the project and links it from the HTML entrypoint. This adapter currently supports static HTML/CSS projects; it does not rewrite React, Vue, Svelte, Angular or Next.js component source. Those require dedicated parser-backed adapters.
+
+
+## Runtime Lab boundary
+
+The Runtime Lab status API may inspect a project's manifest but does not execute project code. The start endpoint returns an explicit unavailable response when no provider implementation is registered. The provider interface describes workspace isolation, CPU/memory/disk/process/time limits, deny-by-default network policy, dependency installation, process startup, logs and cleanup. These are provider obligations, not guarantees supplied by the interface itself.
+
+Never enable a runtime by setting a provider name alone. Register only a reviewed implementation with isolation, egress restrictions, resource enforcement, dedicated preview origin, session authorization, log redaction, idle timeout and deterministic workspace deletion. Do not execute imported package scripts in the StudioForge Next.js process.

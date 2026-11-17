@@ -44,7 +44,7 @@ function selectorMatches(selectorText: string, input: EditInput) {
   ];
   if (!candidates.length) return selectors.includes(input.selector);
   return selectors.some((selector) => candidates.some((candidate) => {
-    if (candidate.startsWith(".")) return new RegExp(`\\${escapeRegExp(candidate.slice(1))}(?![\\w-])`).test(selector);
+    if (candidate.startsWith(".")) return new RegExp(`\\.${escapeRegExp(candidate.slice(1))}(?![\\w-])`).test(selector);
     return selector.split(/[\s>+~:[\]]/)[0] === candidate;
   }));
 }

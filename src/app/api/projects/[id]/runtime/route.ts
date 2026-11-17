@@ -19,10 +19,10 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       projectId: id,
       projectKind: manifest.kind,
       projectName: manifest.name,
-      status: provider ? "available" : "not_configured",
-      provider: provider?.name ?? null,
-      canStart: Boolean(provider),
-      message: provider ? "Runtime provider is configured." : "No isolated runtime provider is configured. Imported project code will not be executed.",
+      status: "available",
+      provider: "WebContainers (browser sandbox)",
+      canStart: false,
+      message: "Use the Live Runtime Engine panel to start this project in your browser tab. This is not a remote microVM.",
     }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "Project not found." }, { status: 404 });
@@ -42,13 +42,5 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   } catch {
     return Response.json({ error: "Project not found." }, { status: 404 });
   }
-  const provider = getRuntimeProvider();
-  if (!provider) {
-    return Response.json({
-      error: "Runtime provider is not configured. No project commands were executed.",
-      status: "not_configured",
-      required: ["An isolated runtime provider", "Workspace CPU/memory/disk/time limits", "Network egress policy", "Dedicated preview origin", "Workspace cleanup and lifecycle monitoring"],
-    }, { status: 503 });
-  }
-  return Response.json({ error: "The configured provider does not yet expose a project start workflow." }, { status: 501 });
+  return Response.json({ error: "Start the browser runtime from the Live Runtime Engine panel. Server-side execution is intentionally unavailable." }, { status: 410 });
 }

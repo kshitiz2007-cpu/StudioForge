@@ -24,6 +24,7 @@ export default function Home() {
   const [rightOpen, setRightOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [notice, setNotice] = useState("");
+  const [importedProject, setImportedProject] = useState<{ id: string; name: string; kind: string; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] } | null>(null);
   const selected = useMemo(() => files.find((file) => file.name === activeFile), [activeFile]);
 
   return (
@@ -33,7 +34,7 @@ export default function Home() {
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-forge-accent text-[#07130f]"><WandSparkles size={18} /></div>
           <div className="font-semibold tracking-tight">StudioForge <span className="ml-1 text-xs font-medium text-forge-muted">EARLY ACCESS</span></div>
           <div className="mx-2 h-5 w-px bg-forge-line" />
-          <button className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-300 hover:bg-white/5"><span className="h-2 w-2 rounded-full bg-forge-accent" /> Untitled project <ChevronDown size={14} /></button>
+          <button className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-300 hover:bg-white/5"><span className="h-2 w-2 rounded-full bg-forge-accent" /> {importedProject?.name ?? "Untitled project"} <ChevronDown size={14} /></button>
         </div>
         <div className="flex items-center gap-2">
           <span className="hidden items-center gap-1.5 rounded-md border border-forge-line px-2 py-1 text-[11px] text-forge-muted md:flex"><LockKeyhole size={12} /> Local workspace</span>
@@ -48,13 +49,13 @@ export default function Home() {
           <div className="space-y-1 px-2">
             {nav.map(({ label, icon: Icon, active }) => <button key={label} onClick={() => setNotice(label + " workspace is part of the staged build.")} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] ${active ? "bg-white/[.08] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"}`}><Icon size={15} />{label}{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-forge-accent" />}</button>)}
           </div>
-          <div className="mx-3 my-4 border-t border-forge-line" />
+          <ProjectImportControl onImported={setImportedProject} />\n          <div className="mx-3 my-4 border-t border-forge-line" />
           <div className="flex items-center justify-between px-4 pb-2 text-[10px] font-semibold uppercase tracking-[.12em] text-forge-muted"><span>Project files</span><button onClick={() => setNotice("Import flow is coming in the first vertical slice.")}><Plus size={14} /></button></div>
-          <div className="space-y-0.5 px-2">
-            {files.map((file) => <button key={file.name} onClick={() => setActiveFile(file.name)} className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs ${activeFile === file.name ? "bg-forge-accent/10 text-forge-accent" : "text-slate-400 hover:bg-white/[.04]"}`}><FileCode2 size={14} />{file.name}<span className="ml-auto text-[10px] text-slate-600">{file.size}</span></button>)}
+          {importedProject && <div className="mx-3 mb-2 rounded-md bg-forge-accent/5 px-2 py-2 text-[10px] text-forge-muted">Detected: <span className="text-forge-accent">{importedProject.kind}</span><br />{importedProject.files.length} archive entries</div>}\n          <div className="space-y-0.5 px-2">
+            {(importedProject ? importedProject.files.filter((file) => !file.isDirectory).map((file) => ({ name: file.path, size: `${Math.max(1, Math.round(file.size / 1024))} KB` })) : files).map((file) => <button key={file.name} onClick={() => setActiveFile(file.name)} className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs ${activeFile === file.name ? "bg-forge-accent/10 text-forge-accent" : "text-slate-400 hover:bg-white/[.04]"}`}><FileCode2 size={14} />{file.name}<span className="ml-auto text-[10px] text-slate-600">{file.size}</span></button>)}
           </div>
           <div className="mt-auto border-t border-forge-line p-3">
-            <div className="rounded-lg border border-forge-line bg-forge-panel p-3"><div className="mb-2 flex items-center gap-2 text-xs font-medium"><ShieldCheck size={14} className="text-forge-accent" /> Safe by design</div><p className="text-[11px] leading-relaxed text-forge-muted">Imported code stays unexecuted until an isolated runtime is configured.</p></div>
+            <div className="rounded-lg border border-forge-line bg-forge-panel p-3"><div className="mb-2 flex items-center gap-2 text-xs font-medium"><ShieldCheck size={14} className="text-forge-accent" /> Safe by design</div><p className="text-[11px] leading-relaxed text-forge-muted">Imported source stays unexecuted. Runtime execution is disabled until isolation is configured.</p></div>
             <button className="mt-3 flex w-full items-center gap-2 px-2 text-xs text-forge-muted hover:text-white"><Settings2 size={14} /> Preferences <span className="ml-auto">⌘ ,</span></button>
           </div>
         </aside>}
@@ -91,7 +92,7 @@ export default function Home() {
           <div className="border-t border-forge-line p-3"><div className="mb-2 flex items-center gap-2 text-xs font-medium"><Gauge size={14} className="text-forge-accent" /> Runtime status</div><div className="flex items-center justify-between rounded-md bg-forge-panel px-3 py-2 text-xs"><span className="text-forge-muted">Execution provider</span><span className="text-amber-300">Not configured</span></div><p className="mt-2 text-[10px] leading-relaxed text-forge-muted">Project execution remains disabled until a secure runtime adapter is connected.</p></div>
         </aside>}
       </div>
-      {notice && <div role="status" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-forge-line bg-[#171d27] px-4 py-3 text-xs text-slate-200 shadow-panel"><CircleHelp size={15} className="text-forge-accent" />{notice}<button onClick={() => setNotice("")} aria-label="Dismiss"><X size={14} /></button></div>}
+      {importedProject?.warnings?.length ? <div className="fixed bottom-16 left-1/2 z-40 max-w-lg -translate-x-1/2 rounded-lg border border-amber-500/30 bg-[#211b11] px-4 py-3 text-xs text-amber-100">{importedProject.warnings.join(" ")}</div> : null}\n      {notice && <div role="status" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-forge-line bg-[#171d27] px-4 py-3 text-xs text-slate-200 shadow-panel"><CircleHelp size={15} className="text-forge-accent" />{notice}<button onClick={() => setNotice("")} aria-label="Dismiss"><X size={14} /></button></div>}
       <div className="sr-only">{selected?.name}</div>
     </main>
   );
@@ -99,4 +100,38 @@ export default function Home() {
 
 function MousePointerIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m5 3 14 10-7 1-3 7L5 3Z" /></svg>;
+}
+
+function ProjectImportControl({ onImported }: { onImported: (project: { id: string; name: string; kind: string; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] }) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [progress, setProgress] = useState("");
+  async function upload(file?: File) {
+    if (!file) return;
+    setError("");
+    setBusy(true);
+    setProgress("Inspecting archive…");
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      const response = await fetch("/api/projects/import", { method: "POST", body });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Import failed.");
+      onImported(data.project);
+      setProgress("Project imported");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Import failed.");
+      setProgress("");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <div className="px-2 pb-3">
+    <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-forge-line px-2 py-2.5 text-xs text-slate-300 transition hover:border-forge-accent/60 hover:bg-forge-accent/5 ${busy ? "pointer-events-none opacity-60" : ""}`}>
+      <UploadCloud size={14} /> {busy ? "Inspecting ZIP…" : "Import project ZIP"}
+      <input className="sr-only" type="file" accept=".zip,application/zip" disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+    </label>
+    {progress && <p className="mt-1.5 text-[10px] text-forge-accent">{progress}</p>}
+    {error && <p className="mt-1.5 text-[10px] leading-relaxed text-rose-300">{error}</p>}
+  </div>;
 }

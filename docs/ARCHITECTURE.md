@@ -143,11 +143,14 @@ Next build order:
 
 ## Framework-aware visual source editing
 
-The static preview now has a constrained visual style write path:
-- The trusted preview bridge accepts a versioned `apply-style` message only from its parent window and only for the currently selected element ID.
-- The canvas can edit text color, background color, font size, width, padding, border radius and 3-/4-stop linear gradients.
-- A server endpoint validates selectors, allowlisted CSS properties and CSS declaration syntax before writing to `studioforge-overrides.css`.
-- The endpoint links that stylesheet from the project's HTML entrypoint, so the override travels with the source project and ZIP export.
-- The preview route reads local stylesheets and applies the generated override stylesheet in the sanitized static preview.
+Visual style edits use parser-backed and stylesheet source adapters:
+- React/Next.js JSX/TSX source can be edited through a uniquely matched static class or ID.
+- CSS rules in project stylesheets and Vue/Svelte component style blocks are updated in place.
+- Unsupported or ambiguous source mappings fail closed; no generated override stylesheet is silently created.
+- Dynamic template bindings, CSS-in-JS and Sass/Less still need dedicated adapters.
 
-This first source-write adapter targets static HTML/CSS projects only. Framework-specific projects still require their own source adapters and an isolated runtime. The UI must not imply that a style operation is persisted if the endpoint rejects it.
+## Runtime Lab implementation status
+
+The repository defines a provider contract with isolation type, capabilities, resource limits, workspace lifecycle, dependency installation, dev-server startup, log streaming and cleanup. A per-project runtime status API reports whether a provider is configured. The UI exposes a Start project runtime control, but it remains disabled while no reviewed provider implementation is registered. The start endpoint returns an explicit unavailable response and never executes package scripts in the StudioForge process.
+
+The default resource policy is a contract baseline, not an enforced limit until a provider implements it. Provider registration must remain explicit and must not be enabled by an environment variable alone.

@@ -85,7 +85,7 @@
     const data = event.data;
     if (event.source !== parent || !data || data.protocol !== protocol || data.sessionId !== sessionId || data.type !== "apply-style") return;
     if (!selected || data.elementId !== selected.getAttribute("data-studioforge-id") || typeof data.property !== "string" || typeof data.value !== "string") return;
-    selected.style.setProperty(data.property, data.value);
+    selected.style.setProperty(data.property, data.value, "important");
     send("style-applied", { operationId: data.operationId, element: describe(selected) });
   });
 

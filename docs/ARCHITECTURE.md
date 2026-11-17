@@ -159,3 +159,8 @@ The default resource policy is a contract baseline, not an enforced limit until 
 ### Live Runtime Engine status
 
 The first executable adapter is StackBlitz WebContainers in the browser tab. A dedicated runtime-files API assembles the imported workspace while excluding `.env*`, private keys, `node_modules`, `.git`, and generated output. It rejects mounts above 40 MB total or 5 MB per file. The client mounts that tree, detects npm/pnpm/yarn, runs the package manager install, selects the first available `dev`, `start`, or `preview` script, streams process output, waits for `server-ready`, and embeds the returned preview URL. Stop kills the process and tears down the WebContainer instance. Supported projects require a root `package.json`; projects with no supported script fail closed. This is a browser sandbox, not a remote container/microVM service. WebContainer's single-instance-per-page constraint means the adapter runs one active runtime at a time.
+
+
+### Source-to-runtime synchronization
+
+A successful Code Studio save emits a `studioforge:source-saved` event scoped by project ID. The active runtime adapter validates the relative path, writes the saved text into the WebContainer virtual filesystem, and relies on the framework dev server's HMR for preview refresh. A `package.json` update triggers dependency installation again. The source remains persisted in the project workspace first; runtime synchronization is best-effort and reports errors in the terminal panel. No runtime process is required for saving.

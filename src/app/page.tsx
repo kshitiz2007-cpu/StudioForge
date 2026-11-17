@@ -172,6 +172,57 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [importedProject, selectedPath]);
 
+  function updateDraft(next: string) {
+    setUndoStack((stack) => [...stack.slice(-99), draftText]);
+    setRedoStack([]);
+    setDraftText(next);
+    setDirty(next !== sourceText);
+  }
+
+  function undoEdit() {
+    if (!undoStack.length) return;
+    const previous = undoStack[undoStack.length - 1];
+    setRedoStack((stack) => [...stack, draftText]);
+    setUndoStack((stack) => stack.slice(0, -1));
+    setDraftText(previous);
+    setDirty(previous !== sourceText);
+  }
+
+  function redoEdit() {
+    if (!redoStack.length) return;
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack((stack) => [...stack, draftText]);
+    setRedoStack((stack) => stack.slice(0, -1));
+    setDraftText(next);
+    setDirty(next !== sourceText);
+  }
+
+  async function saveSource() {
+    if (!importedProject || !selectedPath || !dirty || saving) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      const response = await fetch(`/api/projects/${importedProject.id}/files`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: selectedPath, content: draftText }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not save source file.");
+      setSourceText(draftText);
+      setDirty(false);
+      setProjectFiles((items) => items.map((item) => item.path === selectedPath ? { ...item, size: data.size } : item));
+      window.dispatchEvent(new CustomEvent("studioforge:source-saved", {
+        detail: { projectId: importedProject.id, path: selectedPath, content: draftText },
+      }));
+      setNotice("Saved " + selectedPath + ". The running runtime will receive the change if active.");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save source file.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <main className="min-h-screen overflow-hidden bg-forge-bg text-forge-text">
       <header className="flex h-14 items-center justify-between border-b border-forge-line bg-[#0d1117] px-4">

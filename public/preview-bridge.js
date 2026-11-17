@@ -30,7 +30,7 @@
     properties.forEach((key) => computed[key] = computedStyle[key]);
     const tagName = el.tagName.toLowerCase();
     const selector = (() => {
-      if (el.id && /^[A-Za-z_][\\w-]*$/.test(el.id)) return "#" + el.id;
+      if (el.id && /^[A-Za-z_][A-Za-z0-9_-]*$/.test(el.id)) return "#" + el.id;
       const parts = [];
       let node = el;
       while (node && node !== document.body && node instanceof HTMLElement) {

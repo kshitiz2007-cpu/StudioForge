@@ -115,6 +115,9 @@ export default function Home() {
         if (!element || typeof element.elementId !== "string" || typeof element.selector !== "string" || typeof element.tagName !== "string" || !element.bounds || typeof element.bounds.width !== "number" || typeof element.bounds.height !== "number" || !element.computed || typeof element.computed !== "object") return;
         setSelectedElement(element);
       }
+      if (data.type === "style-applied" && data.element && typeof data.element.elementId === "string") {
+        setSelectedElement(data.element);
+      }
       if (data.type === "element-hovered") {
         const element = data.element;
         if (element === null) setHoveredElement(null);

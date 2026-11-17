@@ -53,6 +53,35 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
     // Runtime intentionally survives panel unmounts; explicit Stop owns teardown.
   }, []);
 
+  useEffect(() => {
+    const onSourceSaved = async (event: Event) => {
+      const detail = (event as CustomEvent<{ projectId?: string; path?: string; content?: string }>).detail;
+      if (!detail || detail.projectId !== projectId || !sharedContainer || activeProjectId !== projectId) return;
+      if (typeof detail.path !== "string" || typeof detail.content !== "string") return;
+      const normalized = detail.path.replace(/\\\\/g, "/");
+      if (!normalized || normalized.startsWith("/") || normalized.split("/").some((part) => !part || part === "." || part === "..")) {
+        log("stderr", "Rejected unsafe runtime file update path.");
+        return;
+      }
+      try {
+        await sharedContainer.fs.writeFile(normalized, detail.content);
+        log("system", `Updated ${normalized} in the running runtime. The dev server can apply hot reload automatically.`);
+        if (normalized === "package.json") {
+          log("system", "package.json changed; reinstalling dependencies…");
+          const install = await sharedContainer.spawn(packageManager, ["install"]);
+          void install.output.pipeTo(new WritableStream({ write(data) { log("stdout", data); } }));
+          const code = await install.exit;
+          if (code !== 0) log("stderr", `Dependency refresh exited with code ${code}.`);
+          else log("system", "Dependencies refreshed.");
+        }
+      } catch (reason) {
+        log("stderr", reason instanceof Error ? reason.message : "Could not sync saved file to runtime.");
+      }
+    };
+    window.addEventListener("studioforge:source-saved", onSourceSaved);
+    return () => window.removeEventListener("studioforge:source-saved", onSourceSaved);
+  }, [projectId, packageManager]);
+
   async function start() {
     if (state !== "idle" && state !== "error") return;
     setError(""); setLogs([]); setPreviewUrl(""); readyRef.current = false; setState("mounting");

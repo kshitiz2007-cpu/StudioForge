@@ -114,9 +114,14 @@ export async function applyFrameworkStyleEdit(filesRoot: string, manifest: Manif
     const loaded = await safeRead(filesRoot, file.path);
     if (!loaded) continue;
     const isComponent = Boolean(vueOrSvelte?.has(path.extname(file.path).toLowerCase()));
-    const updated = isComponent
-      ? updateComponentStyles(loaded.content, input, value)
-      : updateCss(loaded.content, input, value);
+    let updated: { content: string; matchedSelector: string } | null = null;
+    try {
+      updated = isComponent
+        ? updateComponentStyles(loaded.content, input, value)
+        : updateCss(loaded.content, input, value);
+    } catch {
+      continue;
+    }
     if (!updated) continue;
     await writeFile(loaded.target, updated.content, { encoding: "utf8", mode: 0o600 });
     return { path: file.path, content: updated.content, matchedSelector: updated.matchedSelector };

@@ -40,7 +40,7 @@ export default function Home() {
   const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const previewRef = useRef<HTMLIFrameElement | null>(null);
   const [previewSession, setPreviewSession] = useState("");
-  const [selectedElement, setSelectedElement] = useState<{ elementId: string; selector: string; tagName: string; role: string; textPreview?: string; bounds: { x: number; y: number; width: number; height: number }; computed: Record<string, string> } | null>(null);
+  const [selectedElement, setSelectedElement] = useState<{ elementId: string; selector: string; tagName: string; classNames?: string[]; role: string; textPreview?: string; bounds: { x: number; y: number; width: number; height: number }; computed: Record<string, string> } | null>(null);
   const [hoveredElement, setHoveredElement] = useState<{ selector: string; tagName: string } | null>(null);
   const [visualColor, setVisualColor] = useState("#111827");
   const [visualBackground, setVisualBackground] = useState("#ffffff");

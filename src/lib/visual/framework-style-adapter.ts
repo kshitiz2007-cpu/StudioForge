@@ -1,6 +1,7 @@
 import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
-import postcss from "postcss";\nimport { updateJsxInlineStyle } from "@/lib/visual/jsx-inline-style-adapter";
+import postcss from "postcss";
+import { updateJsxInlineStyle } from "@/lib/visual/jsx-inline-style-adapter";
 
 type Manifest = { kind: string; files: { path: string; size: number; isDirectory?: boolean }[] };
 type EditInput = { selector: string; tagName?: string; classNames?: string[]; property: string; value: string };
@@ -97,6 +98,24 @@ async function safeRead(root: string, relative: string) {
 export async function applyFrameworkStyleEdit(filesRoot: string, manifest: Manifest, input: EditInput): Promise<SourceChange> {
   const value = validateDeclaration(input.property, input.value);
   const kind = manifest.kind;
+  if (kind === "react" || kind === "next") {
+    const sourceCandidates = manifest.files
+      .filter((file) => !file.isDirectory && /\.(jsx|tsx|js|mjs|cjs)$/i.test(file.path))
+      .sort((a, b) => a.path.localeCompare(b.path));
+    const matches: { path: string; target: string; content: string; matchedSelector: string; strategy: string }[] = [];
+    for (const file of sourceCandidates) {
+      const loaded = await safeRead(filesRoot, file.path);
+      if (!loaded) continue;
+      const updated = updateJsxInlineStyle(loaded.content, file.path, input);
+      if (updated) matches.push({ path: file.path, target: loaded.target, content: updated.content, matchedSelector: updated.matchedSelector, strategy: updated.mode });
+    }
+    if (matches.length > 1) throw new Error("This element maps to more than one JSX/TSX source file. Add a unique class or ID before editing.");
+    if (matches.length === 1) {
+      const match = matches[0];
+      await writeFile(match.target, match.content, { encoding: "utf8", mode: 0o600 });
+      return { path: match.path, content: match.content, matchedSelector: match.matchedSelector, strategy: match.strategy };
+    }
+  }
   const vueOrSvelte = COMPONENT_EXTENSIONS[kind];
   const candidates = manifest.files
     .filter((file) => !file.isDirectory)

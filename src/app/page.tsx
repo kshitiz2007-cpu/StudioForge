@@ -24,7 +24,7 @@ export default function Home() {
   const [rightOpen, setRightOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [notice, setNotice] = useState("");
-  const [importedProject, setImportedProject] = useState<{ id: string; name: string; kind: string; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] } | null>(null);
+  const [importedProject, setImportedProject] = useState<{ id: string; name: string; kind: string; entrypoint: string | null; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] } | null>(null);
   const [projectFiles, setProjectFiles] = useState<{ path: string; size: number; isDirectory: boolean; extension: string }[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [sourceText, setSourceText] = useState("");
@@ -258,7 +258,7 @@ function MousePointerIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m5 3 14 10-7 1-3 7L5 3Z" /></svg>;
 }
 
-function ProjectImportControl({ onImported }: { onImported: (project: { id: string; name: string; kind: string; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] }) => void }) {
+function ProjectImportControl({ onImported }: { onImported: (project: { id: string; name: string; kind: string; entrypoint: string | null; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] }) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState("");

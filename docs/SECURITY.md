@@ -33,3 +33,15 @@ Imported project archives and source files are untrusted input.
 - Keep projects private by default.
 - Validate all paths server-side.
 - Log security-relevant events without logging secrets or source contents unnecessarily.
+
+
+## Static preview boundary
+
+The first preview mode is deliberately static-only:
+
+- The preview iframe uses an empty sandbox attribute; scripts, forms, popups and same-origin access are not granted.
+- HTML is sanitized server-side before rendering.
+- Local linked CSS files are parsed; imports, external resource URLs and behavior-like declarations are removed.
+- The preview response applies a restrictive CSP and disables network connections, media and external fonts.
+- JavaScript from imported projects is not executed. Framework projects require a separately isolated runtime provider before they can run.
+- This preview is a compatibility-limited static renderer, not a full browser-equivalent execution environment.

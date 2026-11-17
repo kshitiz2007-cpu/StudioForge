@@ -1,10 +1,10 @@
 import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
-import postcss from "postcss";
+import postcss from "postcss";\nimport { updateJsxInlineStyle } from "@/lib/visual/jsx-inline-style-adapter";
 
 type Manifest = { kind: string; files: { path: string; size: number; isDirectory?: boolean }[] };
 type EditInput = { selector: string; tagName?: string; classNames?: string[]; property: string; value: string };
-type SourceChange = { path: string; content: string; matchedSelector: string };
+type SourceChange = { path: string; content: string; matchedSelector: string; strategy: string };
 
 const STYLE_EXTENSIONS = new Set([".css", ".pcss"]);
 const COMPONENT_EXTENSIONS: Record<string, Set<string>> = {
@@ -124,7 +124,7 @@ export async function applyFrameworkStyleEdit(filesRoot: string, manifest: Manif
     }
     if (!updated) continue;
     await writeFile(loaded.target, updated.content, { encoding: "utf8", mode: 0o600 });
-    return { path: file.path, content: updated.content, matchedSelector: updated.matchedSelector };
+    return { path: file.path, content: updated.content, matchedSelector: updated.matchedSelector, strategy: "in-place-css-rule" };
   }
 
   const frameworkLabel: Record<string, string> = {

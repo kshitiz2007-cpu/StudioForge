@@ -86,11 +86,11 @@ export default function Home() {
     try {
       const response = await fetch(`/api/projects/${importedProject.id}/visual-edits`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selector: selectedElement.selector, property, value }),
+        body: JSON.stringify({ selector: selectedElement.selector, tagName: selectedElement.tagName, classNames: selectedElement.classNames, property, value }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not save visual change.");
-      setVisualStatus("Saved to " + data.stylesheet);
+      setVisualStatus("Saved in " + data.sourceFile + " (" + data.matchedSelector + ")");
     } catch (error) {
       setVisualStatus(error instanceof Error ? error.message : "Visual save failed.");
     } finally {

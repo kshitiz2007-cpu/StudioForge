@@ -218,7 +218,7 @@ export default function Home() {
             <div className="space-y-3 rounded-lg border border-forge-line bg-forge-panel p-3">
               <div>
                 <label className="mb-1 block text-[10px] text-forge-muted">Text color · HEX</label>
-                <div className="flex gap-2"><input type="color" value={/^#[0-9a-f]{6}$/i.test(visualColor) ? visualColor : "#111827"} onChange={(e)=>setVisualColor(e.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent" /><input value={visualColor} onChange={(e)=>setVisualColor(e.target.value)} onBlur={()=>{if(/^#[0-9a-f]{6}$/i.test(visualColor)) void applyVisualStyle("color",visualColor);}} className="min-w-0 flex-1 rounded border border-forge-line bg-[#0a0d12] px-2 text-xs text-white" /></div>
+                <div className="flex gap-2"><input type="color" value={/^#[0-9a-f]{6}$/i.test(visualColor) ? visualColor : "#111827"} onChange={(e)=>{setVisualColor(e.target.value);void applyVisualStyle("color",e.target.value);}} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent" /><input value={visualColor} onChange={(e)=>setVisualColor(e.target.value)} onBlur={()=>{if(/^#[0-9a-f]{6}$/i.test(visualColor)) void applyVisualStyle("color",visualColor);}} className="min-w-0 flex-1 rounded border border-forge-line bg-[#0a0d12] px-2 text-xs text-white" /></div>
               </div>
               <div>
                 <label className="mb-1 block text-[10px] text-forge-muted">Background color · HEX</label>

@@ -42,6 +42,16 @@ export default function Home() {
   const [previewSession, setPreviewSession] = useState("");
   const [selectedElement, setSelectedElement] = useState<{ elementId: string; selector: string; tagName: string; role: string; textPreview?: string; bounds: { x: number; y: number; width: number; height: number }; computed: Record<string, string> } | null>(null);
   const [hoveredElement, setHoveredElement] = useState<{ selector: string; tagName: string } | null>(null);
+  const [visualColor, setVisualColor] = useState("#111827");
+  const [visualBackground, setVisualBackground] = useState("#ffffff");
+  const [visualFontSize, setVisualFontSize] = useState("16");
+  const [visualWidth, setVisualWidth] = useState("");
+  const [visualPadding, setVisualPadding] = useState("");
+  const [visualRadius, setVisualRadius] = useState("");
+  const [gradientStops, setGradientStops] = useState(["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b"]);
+  const [gradientCount, setGradientCount] = useState<3 | 4>(3);
+  const [visualSaving, setVisualSaving] = useState(false);
+  const [visualStatus, setVisualStatus] = useState("");
   const selected = useMemo(() => files.find((file) => file.name === activeFile), [activeFile]);
 
   useEffect(() => {
@@ -53,6 +63,46 @@ export default function Home() {
     setPreviewSession(crypto.randomUUID());
     setSelectedElement(null);
   }, [importedProject]);
+
+  useEffect(() => {
+    if (!selectedElement) return;
+    setVisualColor(selectedElement.computed.color || "#111827");
+    setVisualBackground(selectedElement.computed.backgroundColor || "#ffffff");
+    setVisualFontSize(String(parseFloat(selectedElement.computed.fontSize || "16") || 16));
+    setVisualWidth(String(Math.round(selectedElement.bounds.width)));
+    setVisualPadding(String(parseFloat(selectedElement.computed.paddingTop || "0") || 0));
+    setVisualRadius(String(parseFloat(selectedElement.computed.borderRadius || "0") || 0));
+  }, [selectedElement?.elementId]);
+
+  async function applyVisualStyle(property: string, value: string) {
+    if (!importedProject || !selectedElement || !previewRef.current?.contentWindow) return;
+    const operationId = crypto.randomUUID();
+    previewRef.current.contentWindow.postMessage({
+      protocol: "studioforge.preview.v1", type: "apply-style", sessionId: previewSession,
+      operationId, elementId: selectedElement.elementId, property, value,
+    }, "*");
+    setVisualSaving(true);
+    setVisualStatus("Saving visual change…");
+    try {
+      const response = await fetch(`/api/projects/${importedProject.id}/visual-edits`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selector: selectedElement.selector, property, value }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not save visual change.");
+      setVisualStatus("Saved to " + data.stylesheet);
+      setPreviewVersion((version) => version + 1);
+    } catch (error) {
+      setVisualStatus(error instanceof Error ? error.message : "Visual save failed.");
+    } finally {
+      setVisualSaving(false);
+    }
+  }
+
+  function applyGradient() {
+    const stops = gradientStops.slice(0, gradientCount).map((color, index) => `${color} ${Math.round(index * 100 / (gradientCount - 1))}%`).join(", ");
+    void applyVisualStyle("background-image", `linear-gradient(90deg, ${stops})`);
+  }
 
   useEffect(() => {
     if (!importedProject || !previewSession) return;

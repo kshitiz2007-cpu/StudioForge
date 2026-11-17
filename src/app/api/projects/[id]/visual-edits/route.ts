@@ -48,7 +48,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       matchedSelector: change.matchedSelector,
       property: payload.property,
       value: payload.value,
-      strategy: "in-place-source-rule",
+      strategy: change.strategy,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save visual style.";

@@ -94,9 +94,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
     const href = path.posix.basename(cssRelative);
     const link = `<link rel="stylesheet" href="${href}" data-studioforge-overrides="true">`;
-    const nextHtml = /data-studioforge-overrides=["']true["']/.test(html)
-      ? html
-      : html.replace(/<\\/head>/i, `${link}</head>`);
+    const alreadyLinked = html.includes('data-studioforge-overrides="true"') || html.includes("data-studioforge-overrides='true'");
+    const headClose = html.toLowerCase().indexOf("</head>");
+    const nextHtml = alreadyLinked ? html : headClose >= 0
+      ? html.slice(0, headClose) + link + html.slice(headClose)
+      : html;
     if (nextHtml === html && !/data-studioforge-overrides=["']true["']/.test(html)) {
       return Response.json({ error: "Could not safely attach the visual stylesheet to the HTML entrypoint." }, { status: 422 });
     }

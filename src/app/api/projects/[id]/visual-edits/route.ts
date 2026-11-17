@@ -29,7 +29,7 @@ function cssDeclaration(property: string, value: string) {
   const parsed = postcss.parse(`x{ ${property}: ${value}; }`);
   const decls: { prop: string; value: string }[] = [];
   parsed.walkDecls((decl) => decls.push({ prop: decl.prop, value: decl.value }));
-  if (decls.length !== 1 || decls[0].prop !== property || /url\\s*\\(|expression\\s*\\(|javascript:/i.test(decls[0].value)) throw new Error("Unsafe CSS value.");
+  if (decls.length !== 1 || decls[0].prop !== property || decls[0].value.toLowerCase().includes("url(") || decls[0].value.toLowerCase().includes("expression(") || decls[0].value.toLowerCase().includes("javascript:")) throw new Error("Unsafe CSS value.");
   return decls[0].value;
 }
 

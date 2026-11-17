@@ -29,7 +29,19 @@
     const computed = {};
     properties.forEach((key) => computed[key] = computedStyle[key]);
     const tagName = el.tagName.toLowerCase();
-    const selector = el.id ? "#" + CSS.escape(el.id) : tagName + (el.classList.length ? "." + [...el.classList].slice(0,3).map((name) => CSS.escape(name)).join(".") : "");
+    const selector = (() => {
+      if (el.id) return "#" + CSS.escape(el.id);
+      const parts = [];
+      let node = el;
+      while (node && node !== document.body && node instanceof HTMLElement) {
+        const name = node.tagName.toLowerCase();
+        const siblings = node.parentElement ? [...node.parentElement.children].filter((child) => child.tagName === node.tagName) : [];
+        parts.unshift(name + ":nth-of-type(" + (siblings.indexOf(node) + 1) + ")");
+        node = node.parentElement;
+        if (node instanceof HTMLElement && node.id) { parts.unshift("#" + CSS.escape(node.id)); break; }
+      }
+      return parts.join(" > ");
+    })();
     let elementId = el.getAttribute("data-studioforge-id");
     if (!elementId) {
       elementId = crypto.randomUUID();
@@ -69,7 +81,7 @@
     send("element-selected", { element: describe(selected) });
   }, true);
 
-  document.addEventListener("keydown", (event) => {
+  window.addEventListener("message", (event) => {\n    const data = event.data;\n    if (event.source !== parent || !data || data.protocol !== protocol || data.sessionId !== sessionId || data.type !== "apply-style") return;\n    if (!selected || data.elementId !== selected.getAttribute("data-studioforge-id") || typeof data.property !== "string" || typeof data.value !== "string") return;\n    selected.style.setProperty(data.property, data.value);\n    send("style-applied", { operationId: data.operationId, element: describe(selected) });\n  });\n\n  document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && selected) {
       selected.removeAttribute("data-studioforge-selected");
       selected = null;

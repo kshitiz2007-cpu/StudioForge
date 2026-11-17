@@ -45,6 +45,37 @@ export default function Home() {
   const selected = useMemo(() => files.find((file) => file.name === activeFile), [activeFile]);
 
   useEffect(() => {
+    if (!importedProject) {
+      setPreviewSession("");
+      setSelectedElement(null);
+      return;
+    }
+    setPreviewSession(crypto.randomUUID());
+    setSelectedElement(null);
+  }, [importedProject]);
+
+  useEffect(() => {
+    if (!importedProject || !previewSession) return;
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (event.source !== previewRef.current?.contentWindow || !data || data.protocol !== "studioforge.preview.v1" || data.sessionId !== previewSession) return;
+      if (data.type === "element-selected") {
+        const element = data.element;
+        if (element === null) { setSelectedElement(null); return; }
+        if (!element || typeof element.elementId !== "string" || typeof element.selector !== "string" || typeof element.tagName !== "string" || !element.bounds || typeof element.bounds.width !== "number" || typeof element.bounds.height !== "number" || !element.computed || typeof element.computed !== "object") return;
+        setSelectedElement(element);
+      }
+      if (data.type === "element-hovered") {
+        const element = data.element;
+        if (element === null) setHoveredElement(null);
+        else if (element && typeof element.selector === "string" && typeof element.tagName === "string") setHoveredElement({ selector: element.selector, tagName: element.tagName });
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [importedProject, previewSession]);
+
+  useEffect(() => {
     if (!importedProject) return;
     let cancelled = false;
     fetch(`/api/projects/${importedProject.id}/files`).then((r) => r.json()).then((data) => {

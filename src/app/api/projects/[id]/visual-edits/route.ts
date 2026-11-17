@@ -23,7 +23,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return Response.json({ error: "The selected element does not have a safe, persistent selector." }, { status: 400 });
   }
   const classNames = Array.isArray(payload.classNames)
-    ? payload.classNames.filter((name): name is string => typeof name === "string" && /^[\\w-]{1,100}$/.test(name)).slice(0, 30)
+    ? payload.classNames.filter((name): name is string => typeof name === "string" && /^[\w-]{1,100}$/.test(name)).slice(0, 30)
     : [];
   const tagName = typeof payload.tagName === "string" && /^[a-z][a-z0-9-]{0,40}$/i.test(payload.tagName) ? payload.tagName : undefined;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import RuntimeEngine from "@/components/runtime/runtime-engine";
 import { Activity, AppWindow, ArrowUpRight, Box, Braces, ChevronDown, CircleHelp, Command, Download, Eye, FileCode2, FolderOpen, Gauge, GitBranch, Layers3, LayoutGrid, LockKeyhole, PanelLeftClose, PanelRightClose, Play, Plus, RefreshCw, Settings2, ShieldCheck, Sparkles, UploadCloud, WandSparkles, X } from "lucide-react";
 
 const files = [
@@ -230,6 +231,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
+              {importedProject && <RuntimeEngine projectId={importedProject.id} />}
             <div className="flex h-7 items-center justify-between border-t border-forge-line bg-[#0d1117] px-3 text-[10px] text-forge-muted"><div className="flex gap-4"><span className="flex items-center gap-1"><GitBranch size={11} /> main</span><span>{dirty ? "1 unsaved file" : "0 changes"}</span><span>UTF-8</span></div><div className="flex gap-3"><span>StudioForge core</span><span>v0.1.0</span></div></div>
           </div>
         </section>

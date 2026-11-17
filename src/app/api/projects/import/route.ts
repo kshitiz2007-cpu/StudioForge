@@ -68,6 +68,10 @@ async function inspectZip(buffer: Buffer) {
 }
 
 export async function POST(request: Request) {
+  // This first-pass filesystem importer is for local development only; production needs auth + owner-scoped storage.
+  if (process.env.NODE_ENV === "production" && process.env.STUDIOFORGE_ENABLE_UNAUTHENTICATED_LOCAL_IMPORT !== "true") {
+    return jsonError("Local import is disabled in production until authentication and project ownership are configured.", 503);
+  }
   try {
     const form = await request.formData();
     const file = form.get("file");

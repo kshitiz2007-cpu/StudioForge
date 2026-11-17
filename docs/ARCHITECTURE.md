@@ -35,6 +35,12 @@ Use a framework adapter registry. Each adapter reports:
 
 Detection is metadata only. Never infer that a project runs merely because its framework was detected. Next.js and other server-rendered projects need a Node-capable runtime; static export support is not equivalent to full server feature support. Runtime selection must report incompatibilities instead of silently showing a stale or sanitized preview.
 
+## Runtime Lab implementation status
+
+The repository now defines a provider contract with isolation type, capabilities, resource limits, workspace lifecycle, dependency installation, dev-server startup, log streaming and cleanup. A per-project runtime status API reports whether a provider is configured. The UI exposes a Start project runtime control, but it remains disabled while no reviewed provider implementation is registered. The start endpoint returns an explicit unavailable response and never executes package scripts in the StudioForge process.
+
+The default resource policy is a contract baseline, not an enforced limit until a provider implements it. Provider registration must remain explicit and must not be enabled by setting an environment variable alone.
+
 ## Runtime provider contract
 
 1. Create a per-project disposable workspace.
@@ -45,7 +51,7 @@ Detection is metadata only. Never infer that a project runs merely because its f
 6. Stream logs and health status.
 7. Stop and delete the workspace on user request, timeout or failure.
 
-The first provider evaluation should compare:
+Provider evaluation should compare:
 - **Browser runtime:** WebContainers can run Node.js toolchains in the browser, but require cross-origin isolation headers and have browser/platform constraints. Verify package/native-addon compatibility and memory limits for each project.
 - **Remote runtime:** isolated containers or microVMs provide broader OS and server compatibility, but require strong tenant isolation, egress controls, quotas and lifecycle cleanup.
 

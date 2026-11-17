@@ -42,6 +42,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
   const [packageManager, setPackageManager] = useState("npm");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const startupTimerRef = useRef<number | null>(null);
+  const serverReadyUnsubscribeRef = useRef<(() => void) | null>(null);
   const readyRef = useRef(false);
   const processRef = useRef<import("@webcontainer/api").WebContainerProcess | null>(null);
   const log = (stream: LogLine["stream"], text: string) => {
@@ -56,6 +57,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
     if (state !== "idle" && state !== "error") return;
     setError(""); setLogs([]); setPreviewUrl(""); readyRef.current = false; setState("mounting");
     if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
+    serverReadyUnsubscribeRef.current?.(); serverReadyUnsubscribeRef.current = null;
     try {
       if (!window.isSecureContext || !("crossOriginIsolated" in window) || !window.crossOriginIsolated) {
         throw new Error("This page is not cross-origin isolated. Restart the app after enabling COOP/COEP headers, then hard-refresh.");
@@ -96,7 +98,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
       if (installCode !== 0) throw new Error(`npm install exited with code ${installCode}.`);
       log("system", "Dependencies installed.");
       setState("starting");
-      container.on("server-ready", (port, url) => {
+      serverReadyUnsubscribeRef.current = container.on("server-ready", (port, url) => {
         readyRef.current = true;
         if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
         setPreviewUrl(url); setState("running"); log("system", `Dev server ready on port ${port}.`);
@@ -116,6 +118,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
       }, 120000);
     } catch (reason) {
       if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
+      serverReadyUnsubscribeRef.current?.(); serverReadyUnsubscribeRef.current = null;
       if (sharedContainer) { try { sharedContainer.teardown(); } catch { /* Runtime already disposed. */ } sharedContainer = null; activeProjectId = ""; bootPromise = null; }
       setError(reason instanceof Error ? reason.message : "Runtime failed.");
       log("stderr", reason instanceof Error ? reason.message : "Runtime failed.");

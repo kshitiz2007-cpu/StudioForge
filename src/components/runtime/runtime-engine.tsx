@@ -40,6 +40,8 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
   const [script, setScript] = useState("");
   const [packageManager, setPackageManager] = useState("npm");
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const startupTimerRef = useRef<number | null>(null);
+  const readyRef = useRef(false);
   const processRef = useRef<import("@webcontainer/api").WebContainerProcess | null>(null);
   const log = (stream: LogLine["stream"], text: string) => {
     setLogs((current) => [...current.slice(-399), { id: ++nextLogId, stream, text }]);
@@ -51,7 +53,8 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
 
   async function start() {
     if (state !== "idle" && state !== "error") return;
-    setError(""); setLogs([]); setPreviewUrl(""); setState("mounting");
+    setError(""); setLogs([]); setPreviewUrl(""); readyRef.current = false; setState("mounting");
+    if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
     try {
       if (!window.isSecureContext || !("crossOriginIsolated" in window) || !window.crossOriginIsolated) {
         throw new Error("This page is not cross-origin isolated. Restart the app after enabling COOP/COEP headers, then hard-refresh.");
@@ -65,8 +68,9 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
       const pkg = JSON.parse(pkgFile.contents) as { scripts?: Record<string, unknown>; packageManager?: string };
       const launchScript = chooseLaunchScript(pkg);
       if (!launchScript) throw new Error("No supported dev, start, or preview script was found in package.json.");
-      const manager = files.some((f) => f.path === "pnpm-lock.yaml") ? "pnpm" : files.some((f) => f.path === "yarn.lock") ? "yarn" : "npm";
-      if (manager !== "npm") throw new Error(`Detected ${manager} lockfile. This first runtime adapter currently supports npm projects; convert or add package-lock.json to continue.`);
+      const declaredManager = typeof pkg.packageManager === "string" ? pkg.packageManager.split("@")[0] : "";
+      const manager = files.some((f) => f.path === "pnpm-lock.yaml") || declaredManager === "pnpm" ? "pnpm" : files.some((f) => f.path === "yarn.lock") || declaredManager === "yarn" ? "yarn" : "npm";
+      if (declaredManager && !["npm", "pnpm", "yarn"].includes(declaredManager)) throw new Error(`Unsupported package manager: ${declaredManager}. Use npm, pnpm, or yarn.`);
       setPackageManager(manager); setScript(launchScript);
       log("system", `Mounting ${files.length} project files (${Math.round(payload.totalBytes / 1024)} KB)…`);
       if (!sharedContainer) {
@@ -80,27 +84,30 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
       await container.mount(tree as import("@webcontainer/api").FileSystemTree);
       log("system", "Project files mounted in browser runtime.");
       setState("installing");
-      const install = await container.spawn("npm", ["install"]);
+      const install = await container.spawn(manager, ["install"]);
       void install.output.pipeTo(new WritableStream({ write(data) { log("stdout", data); } }));
       const installCode = await install.exit;
       if (installCode !== 0) throw new Error(`npm install exited with code ${installCode}.`);
       log("system", "Dependencies installed.");
       setState("starting");
-      const offReady = container.on("server-ready", (port, url) => {
+      container.on("server-ready", (port, url) => {
+        readyRef.current = true;
+        if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
         setPreviewUrl(url); setState("running"); log("system", `Dev server ready on port ${port}.`);
       });
-      const dev = await container.spawn("npm", ["run", launchScript]);
+      const dev = await container.spawn(manager, ["run", launchScript]);
       processRef.current = dev;
       void dev.output.pipeTo(new WritableStream({ write(data) { log("stdout", data); } }));
       void dev.exit.then((code) => {
         if (code !== 0) { log("stderr", `Development process exited with code ${code}.`); setState((s) => s === "stopping" ? s : "error"); }
       });
-      log("system", `Running npm run ${launchScript}…`);
-      window.setTimeout(() => {
-        setState((current) => current === "starting" ? "error" : current);
-        if (!previewUrl) setError((current) => current || "The dev server did not announce a preview URL within 120 seconds.");
+      log("system", `Running ${manager} run ${launchScript}…`);
+      startupTimerRef.current = window.setTimeout(() => {
+        if (!readyRef.current) {
+          setState("error");
+          setError("The dev server did not announce a preview URL within 120 seconds.");
+        }
       }, 120000);
-      void offReady;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Runtime failed.");
       log("stderr", reason instanceof Error ? reason.message : "Runtime failed.");
@@ -110,10 +117,11 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
 
   async function stop() {
     setState("stopping");
+    if (startupTimerRef.current !== null) window.clearTimeout(startupTimerRef.current);
     try {
       if (processRef.current) { await processRef.current.kill(); processRef.current = null; }
       if (sharedContainer) { await sharedContainer.teardown(); sharedContainer = null; bootPromise = null; }
-      setPreviewUrl(""); setState("idle"); log("system", "Runtime stopped and browser workspace torn down.");
+      readyRef.current = false; setPreviewUrl(""); setState("idle"); log("system", "Runtime stopped and browser workspace torn down.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not stop runtime.");
       setState("error");
@@ -130,7 +138,7 @@ export default function RuntimeEngine({ projectId }: { projectId: string }) {
     </div>
     {error && <p role="alert" className="border-b border-rose-500/20 bg-rose-500/5 px-4 py-2 text-[11px] text-rose-300">{error}</p>}
     {previewUrl && <div className="border-b border-forge-line">
-      <div className="flex items-center justify-between px-3 py-2 text-[10px] text-forge-muted"><span>Live application preview · npm run {script}</span><a href={previewUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-forge-accent">Open separately <ExternalLink size={11} /></a></div>
+      <div className="flex items-center justify-between px-3 py-2 text-[10px] text-forge-muted"><span>Live application preview · {packageManager} run {script}</span><a href={previewUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-forge-accent">Open separately <ExternalLink size={11} /></a></div>
       <iframe ref={iframeRef} title="Live project runtime preview" src={previewUrl} allow="cross-origin-isolated" className="h-[420px] w-full bg-white" />
     </div>}
     <div className="max-h-56 overflow-auto bg-[#080b10] p-3 font-mono text-[10px] leading-5" aria-live="polite">

@@ -24,8 +24,30 @@ export default function Home() {
   const [rightOpen, setRightOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [notice, setNotice] = useState("");
-  const [importedProject, setImportedProject] = useState<{ id: string; name: string; kind: string; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] } | null>(null);\n  const [projectFiles, setProjectFiles] = useState<{ path: string; size: number; isDirectory: boolean; extension: string }[]>([]);\n  const [selectedPath, setSelectedPath] = useState("");\n  const [sourceText, setSourceText] = useState("");\n  const [sourceLoading, setSourceLoading] = useState(false);\n  const [editorMode, setEditorMode] = useState<"visual" | "code">("visual");
-  const selected = useMemo(() => files.find((file) => file.name === activeFile), [activeFile]);\n\n  useEffect(() => {\n    if (!importedProject) return;\n    let cancelled = false;\n    fetch(`/api/projects/${importedProject.id}/files`).then((r) => r.json()).then((data) => {\n      if (!cancelled && Array.isArray(data.files)) { setProjectFiles(data.files); if (data.files[0]) { setSelectedPath(data.files[0].path); setEditorMode("code"); } }\n    }).catch(() => { if (!cancelled) setNotice("Could not load project files."); });\n    return () => { cancelled = true; };\n  }, [importedProject]);\n\n  useEffect(() => {\n    if (!importedProject || !selectedPath) return;\n    let cancelled = false;\n    setSourceLoading(true);\n    fetch(`/api/projects/${importedProject.id}/files?path=${encodeURIComponent(selectedPath)}`).then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not read file."); return data; }).then((data) => { if (!cancelled) setSourceText(data.content ?? ""); }).catch((error) => { if (!cancelled) setSourceText(error instanceof Error ? error.message : "Could not read file."); }).finally(() => { if (!cancelled) setSourceLoading(false); });\n    return () => { cancelled = true; };\n  }, [importedProject, selectedPath]);
+  const [importedProject, setImportedProject] = useState<{ id: string; name: string; kind: string; files: { path: string; size: number; isDirectory: boolean }[]; warnings: string[] } | null>(null);
+  const [projectFiles, setProjectFiles] = useState<{ path: string; size: number; isDirectory: boolean; extension: string }[]>([]);
+  const [selectedPath, setSelectedPath] = useState("");
+  const [sourceText, setSourceText] = useState("");
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [editorMode, setEditorMode] = useState<"visual" | "code">("visual");
+  const selected = useMemo(() => files.find((file) => file.name === activeFile), [activeFile]);
+
+  useEffect(() => {
+    if (!importedProject) return;
+    let cancelled = false;
+    fetch(`/api/projects/${importedProject.id}/files`).then((r) => r.json()).then((data) => {
+      if (!cancelled && Array.isArray(data.files)) { setProjectFiles(data.files); if (data.files[0]) { setSelectedPath(data.files[0].path); setEditorMode("code"); } }
+    }).catch(() => { if (!cancelled) setNotice("Could not load project files."); });
+    return () => { cancelled = true; };
+  }, [importedProject]);
+
+  useEffect(() => {
+    if (!importedProject || !selectedPath) return;
+    let cancelled = false;
+    setSourceLoading(true);
+    fetch(`/api/projects/${importedProject.id}/files?path=${encodeURIComponent(selectedPath)}`).then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not read file."); return data; }).then((data) => { if (!cancelled) setSourceText(data.content ?? ""); }).catch((error) => { if (!cancelled) setSourceText(error instanceof Error ? error.message : "Could not read file."); }).finally(() => { if (!cancelled) setSourceLoading(false); });
+    return () => { cancelled = true; };
+  }, [importedProject, selectedPath]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-forge-bg text-forge-text">
@@ -49,9 +71,11 @@ export default function Home() {
           <div className="space-y-1 px-2">
             {nav.map(({ label, icon: Icon, active }) => <button key={label} onClick={() => setNotice(label + " workspace is part of the staged build.")} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] ${active ? "bg-white/[.08] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"}`}><Icon size={15} />{label}{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-forge-accent" />}</button>)}
           </div>
-          <ProjectImportControl onImported={setImportedProject} />\n          <div className="mx-3 my-4 border-t border-forge-line" />
+          <ProjectImportControl onImported={setImportedProject} />
+          <div className="mx-3 my-4 border-t border-forge-line" />
           <div className="flex items-center justify-between px-4 pb-2 text-[10px] font-semibold uppercase tracking-[.12em] text-forge-muted"><span>Project files</span><button onClick={() => setNotice("Import flow is coming in the first vertical slice.")}><Plus size={14} /></button></div>
-          {importedProject && <div className="mx-3 mb-2 rounded-md bg-forge-accent/5 px-2 py-2 text-[10px] text-forge-muted">Detected: <span className="text-forge-accent">{importedProject.kind}</span><br />{importedProject.files.length} archive entries</div>}\n          <div className="space-y-0.5 px-2">
+          {importedProject && <div className="mx-3 mb-2 rounded-md bg-forge-accent/5 px-2 py-2 text-[10px] text-forge-muted">Detected: <span className="text-forge-accent">{importedProject.kind}</span><br />{importedProject.files.length} archive entries</div>}
+          <div className="space-y-0.5 px-2">
             {(importedProject ? projectFiles.map((file) => ({ name: file.path, size: `${Math.max(1, Math.round(file.size / 1024))} KB` })) : files).map((file) => <button key={file.name} onClick={() => { setActiveFile(file.name); if (importedProject) { setSelectedPath(file.name); setEditorMode("code"); } }} className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs ${activeFile === file.name ? "bg-forge-accent/10 text-forge-accent" : "text-slate-400 hover:bg-white/[.04]"}`}><FileCode2 size={14} />{file.name}<span className="ml-auto text-[10px] text-slate-600">{file.size}</span></button>)}
           </div>
           <div className="mt-auto border-t border-forge-line p-3">
@@ -67,7 +91,9 @@ export default function Home() {
           </div>
           <div className="flex min-h-0 flex-1 flex-col bg-[#0a0d12]">
             <div className="flex h-10 items-center gap-1 border-b border-forge-line px-3"><button onClick={() => setEditorMode("visual")} className={`rounded-md px-3 py-1.5 text-xs ${editorMode === "visual" ? "bg-white/[.07] text-white" : "text-forge-muted hover:bg-white/[.04]"}`}><Eye size={13} className="mr-1.5 inline" />Visual</button><button onClick={() => setEditorMode("code")} className={`rounded-md px-3 py-1.5 text-xs ${editorMode === "code" ? "bg-white/[.07] text-white" : "text-forge-muted hover:bg-white/[.04]"}`}><Braces size={13} className="mr-1.5 inline" />Code</button><div className="ml-auto flex items-center gap-2 text-[11px] text-forge-muted"><span>Desktop</span><span className="text-slate-600">1440 × 900</span></div></div>
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-5 md:p-8">\n              {editorMode === "code" && importedProject ? <div className="h-full min-h-[480px] w-full overflow-hidden rounded-xl border border-forge-line bg-[#0d1117]"><div className="flex h-10 items-center justify-between border-b border-forge-line px-4 text-xs text-forge-muted"><span>{selectedPath || "Choose a file"}</span><span>{sourceLoading ? "Loading…" : "Read-only source view"}</span></div><pre className="h-[calc(100%-40px)] overflow-auto p-4 text-xs leading-6 text-slate-300"><code>{sourceText || (projectFiles.length ? "Select a file from the project tree." : "No files found in this project.")}</code></pre></div> : null}\n              {editorMode === "visual" || !importedProject ? <div className="w-full max-w-[980px] overflow-hidden rounded-xl border border-[#303946] bg-[#f7f8fa] shadow-2xl shadow-black/40">
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-5 md:p-8">
+              {editorMode === "code" && importedProject ? <div className="h-full min-h-[480px] w-full overflow-hidden rounded-xl border border-forge-line bg-[#0d1117]"><div className="flex h-10 items-center justify-between border-b border-forge-line px-4 text-xs text-forge-muted"><span>{selectedPath || "Choose a file"}</span><span>{sourceLoading ? "Loading…" : "Read-only source view"}</span></div><pre className="h-[calc(100%-40px)] overflow-auto p-4 text-xs leading-6 text-slate-300"><code>{sourceText || (projectFiles.length ? "Select a file from the project tree." : "No files found in this project.")}</code></pre></div> : null}
+              {editorMode === "visual" || !importedProject ? <div className="w-full max-w-[980px] overflow-hidden rounded-xl border border-[#303946] bg-[#f7f8fa] shadow-2xl shadow-black/40">
                 <div className="flex h-9 items-center gap-1.5 border-b border-slate-200 bg-white px-3"><span className="h-2.5 w-2.5 rounded-full bg-[#ff6159]" /><span className="h-2.5 w-2.5 rounded-full bg-[#ffbf2f]" /><span className="h-2.5 w-2.5 rounded-full bg-[#2acb42]" /><div className="mx-auto rounded-md bg-slate-100 px-20 py-1 text-[10px] text-slate-400">preview.studioforge.local</div></div>
                 <div className="min-h-[480px] px-8 py-10 text-slate-900 md:px-16">
                   <div className="mx-auto max-w-[680px]">
@@ -91,7 +117,8 @@ export default function Home() {
           <div className="border-t border-forge-line p-3"><div className="mb-2 flex items-center gap-2 text-xs font-medium"><Gauge size={14} className="text-forge-accent" /> Runtime status</div><div className="flex items-center justify-between rounded-md bg-forge-panel px-3 py-2 text-xs"><span className="text-forge-muted">Execution provider</span><span className="text-amber-300">Not configured</span></div><p className="mt-2 text-[10px] leading-relaxed text-forge-muted">Project execution remains disabled until a secure runtime adapter is connected.</p></div>
         </aside>}
       </div>
-      {importedProject?.warnings?.length ? <div className="fixed bottom-16 left-1/2 z-40 max-w-lg -translate-x-1/2 rounded-lg border border-amber-500/30 bg-[#211b11] px-4 py-3 text-xs text-amber-100">{importedProject.warnings.join(" ")}</div> : null}\n      {notice && <div role="status" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-forge-line bg-[#171d27] px-4 py-3 text-xs text-slate-200 shadow-panel"><CircleHelp size={15} className="text-forge-accent" />{notice}<button onClick={() => setNotice("")} aria-label="Dismiss"><X size={14} /></button></div>}
+      {importedProject?.warnings?.length ? <div className="fixed bottom-16 left-1/2 z-40 max-w-lg -translate-x-1/2 rounded-lg border border-amber-500/30 bg-[#211b11] px-4 py-3 text-xs text-amber-100">{importedProject.warnings.join(" ")}</div> : null}
+      {notice && <div role="status" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-forge-line bg-[#171d27] px-4 py-3 text-xs text-slate-200 shadow-panel"><CircleHelp size={15} className="text-forge-accent" />{notice}<button onClick={() => setNotice("")} aria-label="Dismiss"><X size={14} /></button></div>}
       <div className="sr-only">{selected?.name}</div>
     </main>
   );

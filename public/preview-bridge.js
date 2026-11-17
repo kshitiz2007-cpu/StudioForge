@@ -1,5 +1,5 @@
 (() => {
-  const sessionId = new URL(document.currentScript?.src || location.href).searchParams.get("session");
+  const sessionId = document.documentElement.dataset.studioforgeSession;
   if (!sessionId) return;
   const protocol = "studioforge.preview.v1";
   const send = (type, payload = {}) => parent.postMessage({ protocol, type, sessionId, ...payload }, "*");

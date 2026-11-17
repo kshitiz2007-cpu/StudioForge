@@ -61,3 +61,8 @@ Early foundation. The repository is the active implementation target; features a
 StudioForge now includes an opt-in WebContainers runtime panel for imported projects with a root `package.json` and a `dev`, `start`, or `preview` script. It mounts project files in the browser, excludes environment files/private keys and generated folders, detects npm/pnpm/yarn from lockfiles or `packageManager`, installs dependencies, launches the selected script, streams output, embeds the live server URL, and tears down the runtime on Stop. The mount endpoint is capped at 40 MB total and 5 MB per file.
 
 WebContainers require HTTPS (localhost is suitable for local development) and cross-origin isolation. StudioForge sets COOP `same-origin` and COEP `require-corp` headers globally; restart the dev server and hard-refresh after updating. This browser runtime is not a hardened remote microVM, has browser/package compatibility limits, and executes imported code in the user's browser tab. Production runtime actions remain blocked until authentication and project ownership are implemented.
+
+
+### Source-to-runtime sync
+
+Code Studio now has explicit save/undo/redo handlers. Successful source saves emit a project-scoped browser event; the active WebContainer listens for it and writes the changed text file directly into its in-memory filesystem. The dev server can then apply its normal HMR behavior. Saving `package.json` triggers a dependency reinstall. If no runtime is active, the source is still saved to the local project and will be included on the next mount.

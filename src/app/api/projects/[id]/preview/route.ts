@@ -62,6 +62,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const htmlInfo = await stat(htmlFile);
     if (!htmlInfo.isFile() || htmlInfo.size > MAX_HTML_BYTES) return Response.json({ error: "HTML entrypoint exceeds the preview limit." }, { status: 413 });
     const originalHtml = await readFile(htmlFile, "utf8");
+    const bridgeSource = await readFile(path.join(process.cwd(), "public", "preview-bridge.js"), "utf8");
+    const bridgeNonce = randomUUID().replace(/-/g, "");
 
     const styles: string[] = [];
     for (const stylesheet of collectLocalStylesheets(originalHtml, htmlPath)) {
@@ -95,7 +97,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       },
     });
 
-    const document = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'self'; font-src 'none'; media-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0;min-height:100%;}img{max-width:100%;height:auto}${styles.join("\\n")}</style></head><body>${safeMarkup}</body><script src="/preview-bridge.js?session=${encodeURIComponent(sessionId)}" defer></script></html>`;
+    const document = `<!doctype html><html data-studioforge-session="${sessionId}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'nonce-${bridgeNonce}'; font-src 'none'; media-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'"><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0;min-height:100%;}img{max-width:100%;height:auto}${styles.join("\\n")}</style></head><body>${safeMarkup}</body><script nonce="${bridgeNonce}">${bridgeSource}</script></html>`;
     return new Response(document, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",

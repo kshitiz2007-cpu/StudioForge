@@ -39,7 +39,7 @@ function safeCss(source: string) {
 
 function collectLocalStylesheets(html: string, htmlPath: string) {
   const folder = path.posix.dirname(htmlPath);
-  const hrefs = [...html.matchAll(/<link\\b[^>]*rel=["']?stylesheet["']?[^>]*href=["']([^"']+)["'][^>]*>/gi)]
+  const hrefs = [...html.matchAll(/<link\b[^>]*rel=["']?stylesheet["']?[^>]*href=["']([^"']+)["'][^>]*>/gi)]
     .map((match) => match[1])
     .filter((href) => !/^(?:[a-z]+:|\/\/|#|data:)/i.test(href) && !href.includes("?") && !href.includes("#"));
   return [...new Set(hrefs.map((href) => path.posix.normalize(path.posix.join(folder === "." ? "" : folder, href))).filter((p) => p && p !== "." && !p.startsWith("../")))].slice(0, MAX_CSS_FILES);

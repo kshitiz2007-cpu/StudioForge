@@ -81,7 +81,15 @@
     send("element-selected", { element: describe(selected) });
   }, true);
 
-  window.addEventListener("message", (event) => {\n    const data = event.data;\n    if (event.source !== parent || !data || data.protocol !== protocol || data.sessionId !== sessionId || data.type !== "apply-style") return;\n    if (!selected || data.elementId !== selected.getAttribute("data-studioforge-id") || typeof data.property !== "string" || typeof data.value !== "string") return;\n    selected.style.setProperty(data.property, data.value);\n    send("style-applied", { operationId: data.operationId, element: describe(selected) });\n  });\n\n  document.addEventListener("keydown", (event) => {
+  window.addEventListener("message", (event) => {
+    const data = event.data;
+    if (event.source !== parent || !data || data.protocol !== protocol || data.sessionId !== sessionId || data.type !== "apply-style") return;
+    if (!selected || data.elementId !== selected.getAttribute("data-studioforge-id") || typeof data.property !== "string" || typeof data.value !== "string") return;
+    selected.style.setProperty(data.property, data.value);
+    send("style-applied", { operationId: data.operationId, element: describe(selected) });
+  });
+
+  document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && selected) {
       selected.removeAttribute("data-studioforge-selected");
       selected = null;

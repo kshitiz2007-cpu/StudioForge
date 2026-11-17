@@ -77,3 +77,8 @@ The WebContainers adapter executes imported project code inside the user's brows
 
 
 WebContainers also depend on StackBlitz-hosted proxy/acceleration services and are subject to StackBlitz's terms. Review the current provider terms and commercial-use requirements before offering this runtime as a paid hosted feature. The npm client library is MIT-licensed, but that does not itself define the terms for the hosted runtime service.
+
+
+### Runtime source synchronization boundary
+
+Editor saves are persisted through the existing project file API before a browser event attempts to mirror the text into the active WebContainer filesystem. The runtime listener checks project identity and rejects absolute, empty, dot, and parent path segments. This synchronization is client-side and best-effort; a failed runtime write does not roll back the saved project source. Updating `package.json` can execute package-manager lifecycle scripts inside the browser runtime, so only run projects you trust.

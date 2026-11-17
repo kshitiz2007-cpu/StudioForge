@@ -74,3 +74,6 @@ Never enable a runtime by setting a provider name alone. Register only a reviewe
 ### Browser runtime boundary
 
 The WebContainers adapter executes imported project code inside the user's browser tab, not on the StudioForge server. It is useful for interactive Node.js web projects but is not a hardened multi-tenant isolation boundary and does not provide server-enforced CPU, memory, disk, process, or network-egress quotas. Environment files, private keys, generated folders, `node_modules`, and `.git` are excluded from the mount. Package installation and project scripts may access network resources allowed by the browser runtime; users should treat imported code as untrusted. COOP `same-origin` and COEP `require-corp` are enabled globally to satisfy SharedArrayBuffer requirements; this can affect third-party embeds/resources. Production APIs remain blocked until authenticated ownership checks are implemented. A future remote container/microVM provider is still required for hardened hosted execution.
+
+
+WebContainers also depend on StackBlitz-hosted proxy/acceleration services and are subject to StackBlitz's terms. Review the current provider terms and commercial-use requirements before offering this runtime as a paid hosted feature. The npm client library is MIT-licensed, but that does not itself define the terms for the hosted runtime service.

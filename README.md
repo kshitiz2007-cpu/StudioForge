@@ -25,7 +25,7 @@ The first milestone is a safe, end-to-end **static project workflow**:
 5. Persist edits as explicit project changes.
 6. Export the updated project as a ZIP.
 
-Framework-aware execution (Vite, Next.js, Vue, Svelte, etc.) comes through a separately configured runtime provider. StudioForge will never claim that arbitrary project code is running when no runtime is configured.
+Framework-aware source editing now includes a parser-backed JSX/TSX path for React/Next.js and in-place stylesheet edits for supported CSS sources. Runtime Lab now exposes provider status and a start workflow contract; actual execution remains unavailable until an isolated provider is reviewed and integrated. StudioForge never claims that arbitrary project code is running when no runtime is configured.
 
 ## Development
 

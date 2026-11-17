@@ -66,7 +66,7 @@ export function detectFramework(paths: string[], packageJson?: unknown): Framewo
   return "unknown";
 }
 
-export function inspectArchiveEntries(input: unknown[]): ArchiveInspection {
+export function inspectArchiveEntries(input: unknown[], packageJson?: unknown): ArchiveInspection {
   if (input.length === 0) throw new ArchiveValidationError("The ZIP archive is empty.");
   if (input.length > ARCHIVE_LIMITS.maxEntries) throw new ArchiveValidationError("Archive contains too many entries.");
 
@@ -82,6 +82,9 @@ export function inspectArchiveEntries(input: unknown[]): ArchiveInspection {
     if (seen.has(path)) throw new ArchiveValidationError(`Duplicate archive path rejected: ${path}`);
     seen.add(path);
     if (entry.isSymlink) throw new ArchiveValidationError(`Symbolic link rejected: ${path}`);
+    if (entry.size > 0 && entry.compressedSize === 0) {
+      throw new ArchiveValidationError(`Invalid compressed size: ${path}`);
+    }
     if (entry.size > entry.compressedSize * 1_000 && entry.size > 1_000_000) {
       throw new ArchiveValidationError(`Suspicious compression ratio rejected: ${path}`);
     }
@@ -100,11 +103,10 @@ export function inspectArchiveEntries(input: unknown[]): ArchiveInspection {
   if (paths.some((path) => path.toLowerCase().endsWith(".env"))) {
     warnings.push("Archive contains an environment file. Review it for secrets before sharing or running.");
   }
-  const packageEntry = entries.find((entry) => entry.name === "package.json" && !entry.isDirectory);
   return {
     entries,
     totalExpandedBytes,
-    framework: detectFramework(paths, packageEntry ? undefined : undefined),
+    framework: detectFramework(paths, packageJson),
     entrypoint: paths.includes("index.html") ? "index.html" : paths.find((path) => path.endsWith("/index.html")) ?? null,
     warnings,
   };

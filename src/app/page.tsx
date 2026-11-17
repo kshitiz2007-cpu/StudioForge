@@ -91,7 +91,6 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not save visual change.");
       setVisualStatus("Saved to " + data.stylesheet);
-      setPreviewVersion((version) => version + 1);
     } catch (error) {
       setVisualStatus(error instanceof Error ? error.message : "Visual save failed.");
     } finally {
